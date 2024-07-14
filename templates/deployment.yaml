@@ -25,10 +25,11 @@ spec:
             - |
               cpolar version
               echo "Setting up cpolar token..."
-              cpolar authtoken $(echo $CPOLAR_TOKEN)
+              touch /usr/local/etc/cpolar/cpolar.yml
+              cpolar authtoken $(echo $CPOLAR_TOKEN) -config=/usr/local/etc/cpolar/cpolar.yml
               echo "Starting cpolar..."
               mkdir -p /root/.cpolar/logs
-              /usr/local/bin/cpolar start-all -dashboard=on -daemon=on
+              /usr/local/bin/cpolar start-all -dashboard=on -daemon=on -config=/usr/local/etc/cpolar/cpolar.yml
           ports:
             - containerPort: 9200
               name: admin-console
@@ -38,3 +39,10 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-cpolar-secret
                   key: token
+          volumeMounts:
+            - name: config-volume
+              mountPath: /usr/local/etc/cpolar
+      volumes:
+        - name: config-volume
+          persistentVolumeClaim:
+            claimName: {{ include "cpolar.fullname" . }}-config
