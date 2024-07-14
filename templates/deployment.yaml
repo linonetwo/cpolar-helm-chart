@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cpolar.fullname" . }}
+  labels:
+    {{- include "cpolar.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "cpolar.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "cpolar.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsUser: 0
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              cpolar version
+              echo "Setting up cpolar token..."
+              cpolar authtoken $(echo $CPOLAR_TOKEN)
+              echo "Starting cpolar..."
+              mkdir -p /root/.cpolar/logs
+              /usr/local/bin/cpolar start-all -dashboard=on -daemon=on
+          ports:
+            - containerPort: 9200
+              name: admin-console
+          env:
+            - name: CPOLAR_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-cpolar-secret
+                  key: token
